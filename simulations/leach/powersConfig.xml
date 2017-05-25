@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>	
+	<maxPower>0</maxPower>			<!--dbm-->
+	<sensibility>-95</sensibility> 		<!--dbm-->
+        <aggrConsumption>5</aggrConsumption>    <!--Agreggation Consumption - nanojoules (nJ)-->
+	<power>0</power>
+	<power>-1</power>
+	<power>-3</power>
+	<power>-5</power>
+	<power>-7</power>
+	<power>-10</power>
+	<power>-15</power>
+	<power>-25</power>
+</root>
