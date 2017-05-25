@@ -1,0 +1,185 @@
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg simulations/inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg
+--- git_inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg	2017-05-18 19:41:06.550563200 +0200
+@@ -13,4 +13,5 @@
+     MACAddress src;  // can be left empty when sending
+     MACAddress dest;
+     int interfaceId;
++    double rssi;
+ }
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/csma/CSMA.cc simulations/inet/src/inet/linklayer/csma/CSMA.cc
+--- git_inet/src/inet/linklayer/csma/CSMA.cc	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/linklayer/csma/CSMA.cc	2017-05-18 21:33:08.658045800 +0200
+@@ -938,8 +938,10 @@
+ 
+ cPacket *CSMA::decapsMsg(CSMAFrame *macPkt)
+ {
++    ReceptionIndication *cInfo = check_and_cast<ReceptionIndication *>(macPkt->removeControlInfo());
++    double rssi = cInfo->getRSSI().get();
+     cPacket *msg = macPkt->decapsulate();
+-    setUpControlInfo(msg, macPkt->getSrcAddr());
++    setUpControlInfo(msg, macPkt->getSrcAddr(), rssi);
+ 
+     return msg;
+ }
+@@ -947,10 +949,11 @@
+ /**
+  * Attaches a "control info" (MacToNetw) structure (object) to the message pMsg.
+  */
+-cObject *CSMA::setUpControlInfo(cMessage *const pMsg, const MACAddress& pSrcAddr)
++cObject *CSMA::setUpControlInfo(cMessage *const pMsg, const MACAddress& pSrcAddr, double rssi)
+ {
+     SimpleLinkLayerControlInfo *const cCtrlInfo = new SimpleLinkLayerControlInfo();
+     cCtrlInfo->setSrc(pSrcAddr);
++    cCtrlInfo->setRssi(rssi);
+     pMsg->setControlInfo(cCtrlInfo);
+     return cCtrlInfo;
+ }
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/csma/CSMA.h simulations/inet/src/inet/linklayer/csma/CSMA.h
+--- git_inet/src/inet/linklayer/csma/CSMA.h	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/linklayer/csma/CSMA.h	2017-05-18 19:44:07.498912900 +0200
+@@ -321,7 +321,7 @@
+     virtual simtime_t scheduleBackoff();
+ 
+     virtual cPacket *decapsMsg(CSMAFrame *macPkt);
+-    cObject *setUpControlInfo(cMessage *const pMsg, const MACAddress& pSrcAddr);
++    cObject *setUpControlInfo(cMessage *const pMsg, const MACAddress& pSrcAddr, double rssi);
+ //  cObject* setDownControlInfo(cMessage * const pMsg, Signal * const pSignal);
+ 
+     CSMAFrame *ackMessage;
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned
+--- git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned	2017-04-15 14:05:55.714663100 +0200
+@@ -25,10 +25,10 @@
+     parameters:
+         useMACAcks = true;
+ 
+-        // Time needed to switch from sleep to rx.
+-        // TODO This is probabily wrong, since it is used to compute
+-        //      the time for the CCA (and that might follow an RX state)
+-        rxSetupTime = 0s;
++       // Time needed to switch from sleep to rx for ATmega256RFR2
++        // SLEEP -> TRX_OFF 240 us
++        // TRX_OFF -> RX_ON 110 us
++        rxSetupTime = default(240us + 110us);
+ 
+         // aMaxPHYPacketSize = 127 Octets (802.15.4-2006, page 45)
+         // aMinMPDUOverhead = 9 Octets (802.15.4-2006, page 159)
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned
+--- git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned	2017-05-15 22:03:16.078777500 +0200
+@@ -20,12 +20,16 @@
+ 
+ import inet.linklayer.contract.IWirelessNic;
+ import inet.physicallayer.contract.packetlevel.IRadio;
++import inet.linklayer.contract.IMACProtocol;
+ 
+ module Ieee802154NarrowbandNic like IWirelessNic
+ {
+     parameters:
+         string interfaceTableModule;
+         string radioType = default("Ieee802154NarrowbandScalarRadio");
++        // ******** added**********
++        string macType = default("Ieee802154NarrowbandMac");
++        // **************************
+         *.interfaceTableModule = default(absPath(interfaceTableModule));
+         @display("i=block/ifcard");
+     gates:
+@@ -33,7 +37,7 @@
+         output upperLayerOut;
+         input radioIn @labels(IRadioFrame);
+     submodules:
+-        mac: Ieee802154NarrowbandMac {
++        mac: <macType> like IMACProtocol {
+             parameters:
+                 @display("p=100,150");
+         }
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc simulations/inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc
+--- git_inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc	2017-05-18 21:46:45.805784000 +0200
+@@ -24,6 +24,8 @@
+ #include "inet/physicallayer/common/packetlevel/Radio.h"
+ #include "inet/physicallayer/common/packetlevel/RadioMedium.h"
+ 
++#include "inet/physicallayer/analogmodel/packetlevel/ScalarReception.h"
++
+ namespace inet {
+ 
+ namespace physicallayer {
+@@ -591,7 +593,12 @@
+     const IReceptionResult *result = getReceptionResult(radio, listening, transmission);
+     communicationCache->removeCachedReceptionResult(radio, transmission);
+     cPacket *macFrame = const_cast<cPacket *>(result->getMacFrame()->dup());
+-    macFrame->setControlInfo(const_cast<ReceptionIndication *>(result->getIndication()));
++    ReceptionIndication *indication = const_cast<ReceptionIndication *>(result->getIndication());
++    if (strcmp(getSubmodule("analogModel")->getClassName(), "inet::physicallayer::ScalarAnalogModel") == 0) {
++        const ScalarReception *reception = dynamic_cast<const ScalarReception *>(result->getReception());
++        indication->setRSSI(reception->getPower());
++    }
++    macFrame->setControlInfo(indication);
+     delete result;
+     return macFrame;
+ }
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg simulations/inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg
+--- git_inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg	2017-05-24 23:38:24.101209000 +0200
+@@ -72,6 +72,7 @@
+     double packetErrorRate = NaN; // packet error rate (probability) in the range [0, 1] or NaN if unknown.
+     double bitErrorRate = NaN;    // bit error rate (probability) in the range [0, 1] or NaN if unknown.
+     double symbolErrorRate = NaN; // symbol error rate (probability) in the range [0, 1] or NaN if unknown.
+-    W minRSSI = W(NaN);           // minimum receive signal strength indication in the range (0, +infinity) or NaN if unknown.
++    W minRSSI = W(NaN);
++    W RSSI = W(NaN);           // minimum receive signal strength indication in the range (0, +infinity) or NaN if unknown.
+     double minSNIR = NaN;         // minimum signal to noise plus interference ratio in the range (0, +infinity) or NaN if unknown.
+ }
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned
+--- git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned	2017-04-15 13:17:34.975750300 +0200
+@@ -30,20 +30,21 @@
+         carrierFrequency = 2450 MHz;
+ 
+         // B_20dB ATmega256RFR2 (page 564)
+-        // *.bandwidth = default(2.8 MHz);
+-        // what is meant by bandwidth here?
+-        // the B_20dB bandwidth would lead to far too low BERs
+-        bandwidth = default(0.25 MHz);
++        bandwidth = default(2.8 MHz);
+ 
+         // 802.15.4-2006 (page 28)
+         *.bitrate = default(250 kbps);
+ 
+-        // PHY Header, 802.15.4-2006 (page 43)
+-        // 4 octets Preamble
++        // PHY Header (without preamble), 802.15.4-2006 (page 43)
+         // 1 octet SFD
+         // 7 bit Frame length
+         // 1 bit Reserved
+-        *.headerBitLength = (4*8 + 1*8 + 7 + 1) * 1 b;
++        *.headerBitLength = (1*8 + 7 + 1) * 1 b;
++
++        // Preamble
++        // 4 octets Preamble
++        // 1 symbol of 16us -> 4 bit
++        transmitter.preambleDuration = (4*8/4) * 16 us;
+ 
+         // RSSI sensitivity (ATmega256RFR2, page 566)
+         receiver.energyDetection = default(-90dBm);
+@@ -67,5 +68,5 @@
+         // TX Output power (typ. 3.5 dBm, ATmega256RFR2, page 564)
+         transmitter.power = default(2.24mW);
+ 
+-        @class(Radio);
++        @class(FlatRadioBase);
+ }
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned
+--- git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned	2017-02-20 18:28:38.000000000 +0100
++++ simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned	2017-04-15 13:51:01.839536300 +0200
+@@ -26,6 +26,8 @@
+         propagationType = default("ConstantSpeedPropagation");
+         analogModelType = default("ScalarAnalogModel");
+         backgroundNoiseType = default("IsotropicScalarBackgroundNoise");
++        
++        mediumLimitCache.carrierFrequency = 2450 MHz;
+ 
+         // 802.15.4-2006, page 266
+         pathLossType = default("BreakpointPathLoss");
