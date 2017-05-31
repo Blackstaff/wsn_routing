@@ -1,13 +1,14 @@
-The following license governs the use of Castalia  in academic and educational environments. Commercial use requires a commercial license from National ICT Australia Limited (NICTA) .
+wsn_routing is offered under the Academic Public License (same as OMNeT++ and Castalia). 
                         
 ACADEMIC PUBLIC LICENSE
 
+Copyright (C) 2017 Mateusz Czarnecki
 Copyright (C) 2003 Andras Varga, 2007 NICTA
 
 
 Preamble
 
-This license contains the terms and conditions of using Castalia in non-commercial settings: at academic institutions for teaching and research use, and at non-profit research organizations. You will find that this license provides non-commercial users of Castalia with rights that are similar to the well-known GNU General Public License, yet it retains the possibility for Castalia authors to financially support the development by selling commercial licenses. In fact, if you intend to use Castalia in a "for-profit" environment, where research is conducted to develop or enhance a product, or it is used in a commercial service offering, then you need to obtain a commercial license for Castalia which is also available from NICTA.
+This license contains the terms and conditions of using wsn_routing in non-commercial settings: at academic institutions for teaching and research use, and at non-profit research organizations. You will find that this license provides non-commercial users of wsn_routing with rights that are similar to the well-known GNU General Public License, yet it retains the possibility for wsn_routing authors to financially support the development by selling commercial licenses. In fact, if you intend to use wsn_routing in a "for-profit" environment, where research is conducted to develop or enhance a product, or it is used in a commercial service offering, then you need to obtain a commercial license for wsn_routing. In that case, please contact the Author(s) to inquire about commercial licenses.
 
 What are the rights given to non-commercial users? Similarly to GPL, you have the right to use the software, to distribute copies, to receive source code, to change the software and distribute your modifications or the modified software. Also similarly to the GPL, if you distribute verbatim or modified copies of this software, they must be distributed under this license.
 
@@ -20,7 +21,7 @@ TERMS AND CONDITIONS FOR USE, COPYING, DISTRIBUTION AND MODIFICATION
 
 0. Definitions
 
-"Program" means a copy of Castalia, which is said to be distributed under this Academic Public License.
+"Program" means a copy of wsn_routing, which is said to be distributed under this Academic Public License.
 
 "Work based on the Program" means either the Program or any derivative work under copyright law: that is to say, a work containing the Program or a portion of it, either verbatim or with modifications and/or translated into another language.  (Hereinafter, translation is included without limitation in the term "modification".)
 
