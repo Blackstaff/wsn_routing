@@ -1,16 +1,174 @@
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg simulations/inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg
---- git_inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg	2017-05-18 19:41:06.550563200 +0200
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/applications/base/ApplicationBase.h inet/src/inet/applications/base/ApplicationBase.h
+--- inet-3.5.0/src/inet/applications/base/ApplicationBase.h	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/applications/base/ApplicationBase.h	2017-05-31 22:14:41.877481500 +0200
+@@ -20,6 +20,7 @@
+ 
+ #include "inet/common/lifecycle/OperationalBase.h"
+ #include "inet/common/lifecycle/NodeOperations.h"
++#include "inet/applications/base/ApplicationBase.h"
+ 
+ namespace inet {
+ 
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/applications/generic/IPvXTrafGen.cc inet/src/inet/applications/generic/IPvXTrafGen.cc
+--- inet-3.5.0/src/inet/applications/generic/IPvXTrafGen.cc	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/applications/generic/IPvXTrafGen.cc	2017-05-31 23:25:24.326135700 +0200
+@@ -43,7 +43,7 @@
+ 
+ void IPvXTrafGen::initialize(int stage)
+ {
+-    cSimpleModule::initialize(stage);
++    ApplicationBase::initialize(stage);
+ 
+     // because of IPvXAddressResolver, we need to wait until interfaces are registered,
+     // address auto-assignment takes place etc.
+@@ -70,6 +70,7 @@
+         timer = new cMessage("sendTimer");
+         nodeStatus = dynamic_cast<NodeStatus *>(findContainingNode(this)->getSubmodule("status"));
+         isOperational = (!nodeStatus) || nodeStatus->getState() == NodeStatus::UP;
++        setOperational(isOperational);
+ 
+         if (isNodeUp())
+             startApp();
+@@ -82,7 +83,7 @@
+         scheduleNextPacket(-1);
+ }
+ 
+-void IPvXTrafGen::handleMessage(cMessage *msg)
++void IPvXTrafGen::handleMessageWhenUp(cMessage *msg)
+ {
+     if (!isNodeUp())
+         throw cRuntimeError("Application is not running");
+@@ -118,26 +119,23 @@
+     getDisplayString().setTagArg("t", 0, buf);
+ }
+ 
+-bool IPvXTrafGen::handleOperationStage(LifecycleOperation *operation, int stage, IDoneCallback *doneCallback)
++bool IPvXTrafGen::handleNodeStart(IDoneCallback *doneCallback)
+ {
+-    Enter_Method_Silent();
+-    if (dynamic_cast<NodeStartOperation *>(operation)) {
+-        if ((NodeStartOperation::Stage)stage == NodeStartOperation::STAGE_APPLICATION_LAYER)
+-            startApp();
+-    }
+-    else if (dynamic_cast<NodeShutdownOperation *>(operation)) {
+-        if ((NodeShutdownOperation::Stage)stage == NodeShutdownOperation::STAGE_APPLICATION_LAYER)
+-            cancelNextPacket();
+-    }
+-    else if (dynamic_cast<NodeCrashOperation *>(operation)) {
+-        if ((NodeCrashOperation::Stage)stage == NodeCrashOperation::STAGE_CRASH)
+-            cancelNextPacket();
+-    }
+-    else
+-        throw cRuntimeError("Unsupported lifecycle operation '%s'", operation->getClassName());
++    startApp();
++    return true;
++}
++
++bool IPvXTrafGen::handleNodeShutdown(IDoneCallback *doneCallback)
++{
++    cancelNextPacket();
+     return true;
+ }
+ 
++void IPvXTrafGen::handleNodeCrash()
++{
++    cancelNextPacket();
++}
++
+ void IPvXTrafGen::scheduleNextPacket(simtime_t previous)
+ {
+     simtime_t next;
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/applications/generic/IPvXTrafGen.h inet/src/inet/applications/generic/IPvXTrafGen.h
+--- inet-3.5.0/src/inet/applications/generic/IPvXTrafGen.h	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/applications/generic/IPvXTrafGen.h	2017-05-31 23:15:18.321474200 +0200
+@@ -27,13 +27,14 @@
+ #include "inet/applications/generic/IPvXTrafSink.h"
+ #include "inet/common/lifecycle/ILifecycle.h"
+ #include "inet/common/lifecycle/NodeStatus.h"
++#include "inet/applications/base/ApplicationBase.h"
+ 
+ namespace inet {
+ 
+ /**
+  * IP traffic generator application. See NED for more info.
+  */
+-class INET_API IPvXTrafGen : public cSimpleModule, public ILifecycle
++class INET_API IPvXTrafGen : public ApplicationBase
+ {
+   protected:
+     enum Kinds { START = 100, NEXT };
+@@ -69,13 +70,15 @@
+ 
+     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+     virtual void initialize(int stage) override;
+-    virtual void handleMessage(cMessage *msg) override;
++    virtual void handleMessageWhenUp(cMessage *msg) override;
+     virtual void refreshDisplay() const override;
+     virtual void startApp();
+ 
+     virtual void printPacket(cPacket *msg);
+     virtual void processPacket(cPacket *msg);
+-    virtual bool handleOperationStage(LifecycleOperation *operation, int stage, IDoneCallback *doneCallback) override;
++    virtual bool handleNodeStart(IDoneCallback *doneCallback) override;
++    virtual bool handleNodeShutdown(IDoneCallback *doneCallback) override;
++    virtual void handleNodeCrash() override;
+ 
+   public:
+     IPvXTrafGen();
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg
+--- inet-3.5.0/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/linklayer/common/SimpleLinkLayerControlInfo.msg	2017-05-18 19:41:06.550563200 +0200
 @@ -13,4 +13,5 @@
      MACAddress src;  // can be left empty when sending
      MACAddress dest;
      int interfaceId;
 +    double rssi;
  }
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/csma/CSMA.cc simulations/inet/src/inet/linklayer/csma/CSMA.cc
---- git_inet/src/inet/linklayer/csma/CSMA.cc	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/linklayer/csma/CSMA.cc	2017-05-18 21:33:08.658045800 +0200
-@@ -938,8 +938,10 @@
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/linklayer/csma/CSMA.cc inet/src/inet/linklayer/csma/CSMA.cc
+--- inet-3.5.0/src/inet/linklayer/csma/CSMA.cc	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/linklayer/csma/CSMA.cc	2017-06-01 03:06:50.518062400 +0200
+@@ -807,6 +807,40 @@
+     return backoffTime + simTime();
+ }
+ 
++bool CSMA::handleNodeStart(IDoneCallback *doneCallback)
++{
++    macState = IDLE_1;
++    radio->setRadioMode(IRadio::RADIO_MODE_RECEIVER);
++    return true;
++}
++
++bool CSMA::handleNodeShutdown(IDoneCallback *doneCallback)
++{
++    cancelEvent(backoffTimer);
++    cancelEvent(ccaTimer);
++    cancelEvent(sifsTimer);
++    cancelEvent(rxAckTimer);
++    macState = IDLE_1;
++    for (auto & elem : macQueue) {
++        delete (elem);
++    }
++    flushQueue();
++    return true;
++}
++
++void CSMA::handleNodeCrash()
++{
++    cancelEvent(backoffTimer);
++    cancelEvent(ccaTimer);
++    cancelEvent(sifsTimer);
++    cancelEvent(rxAckTimer);
++    macState = IDLE_1;
++    for (auto & elem : macQueue) {
++        delete (elem);
++    }
++    clearQueue();
++}
++
+ /*
+  * Binds timers to events and executes FSM.
+  */
+@@ -938,8 +972,10 @@
  
  cPacket *CSMA::decapsMsg(CSMAFrame *macPkt)
  {
@@ -22,7 +180,7 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
  
      return msg;
  }
-@@ -947,10 +949,11 @@
+@@ -947,10 +983,11 @@
  /**
   * Attaches a "control info" (MacToNetw) structure (object) to the message pMsg.
   */
@@ -35,21 +193,26 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
      pMsg->setControlInfo(cCtrlInfo);
      return cCtrlInfo;
  }
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/csma/CSMA.h simulations/inet/src/inet/linklayer/csma/CSMA.h
---- git_inet/src/inet/linklayer/csma/CSMA.h	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/linklayer/csma/CSMA.h	2017-05-18 19:44:07.498912900 +0200
-@@ -321,7 +321,7 @@
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/linklayer/csma/CSMA.h inet/src/inet/linklayer/csma/CSMA.h
+--- inet-3.5.0/src/inet/linklayer/csma/CSMA.h	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/linklayer/csma/CSMA.h	2017-06-01 02:07:56.891950600 +0200
+@@ -320,8 +320,12 @@
+ 
      virtual simtime_t scheduleBackoff();
  
++    virtual bool handleNodeStart(IDoneCallback *doneCallback) override;
++    virtual bool handleNodeShutdown(IDoneCallback *doneCallback) override;
++    virtual void handleNodeCrash() override;
++
      virtual cPacket *decapsMsg(CSMAFrame *macPkt);
 -    cObject *setUpControlInfo(cMessage *const pMsg, const MACAddress& pSrcAddr);
 +    cObject *setUpControlInfo(cMessage *const pMsg, const MACAddress& pSrcAddr, double rssi);
  //  cObject* setDownControlInfo(cMessage * const pMsg, Signal * const pSignal);
  
      CSMAFrame *ackMessage;
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned
---- git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned	2017-04-15 14:05:55.714663100 +0200
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned
+--- inet-3.5.0/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandMac.ned	2017-04-15 14:05:55.714663100 +0200
 @@ -25,10 +25,10 @@
      parameters:
          useMACAcks = true;
@@ -65,9 +228,9 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
  
          // aMaxPHYPacketSize = 127 Octets (802.15.4-2006, page 45)
          // aMinMPDUOverhead = 9 Octets (802.15.4-2006, page 159)
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned
---- git_inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned	2017-05-15 22:03:16.078777500 +0200
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned
+--- inet-3.5.0/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/linklayer/ieee802154/Ieee802154NarrowbandNic.ned	2017-05-15 22:03:16.078777500 +0200
 @@ -20,12 +20,16 @@
  
  import inet.linklayer.contract.IWirelessNic;
@@ -94,9 +257,9 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
              parameters:
                  @display("p=100,150");
          }
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc simulations/inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc
---- git_inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc	2017-05-18 21:46:45.805784000 +0200
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/physicallayer/common/packetlevel/RadioMedium.cc inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc
+--- inet-3.5.0/src/inet/physicallayer/common/packetlevel/RadioMedium.cc	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/physicallayer/common/packetlevel/RadioMedium.cc	2017-05-18 21:46:45.805784000 +0200
 @@ -24,6 +24,8 @@
  #include "inet/physicallayer/common/packetlevel/Radio.h"
  #include "inet/physicallayer/common/packetlevel/RadioMedium.h"
@@ -120,9 +283,9 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
      delete result;
      return macFrame;
  }
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg simulations/inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg
---- git_inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg	2017-05-24 23:38:24.101209000 +0200
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg
+--- inet-3.5.0/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/physicallayer/contract/packetlevel/RadioControlInfo.msg	2017-05-24 23:38:24.101209000 +0200
 @@ -72,6 +72,7 @@
      double packetErrorRate = NaN; // packet error rate (probability) in the range [0, 1] or NaN if unknown.
      double bitErrorRate = NaN;    // bit error rate (probability) in the range [0, 1] or NaN if unknown.
@@ -132,9 +295,9 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
 +    W RSSI = W(NaN);           // minimum receive signal strength indication in the range (0, +infinity) or NaN if unknown.
      double minSNIR = NaN;         // minimum signal to noise plus interference ratio in the range (0, +infinity) or NaN if unknown.
  }
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned
---- git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned	2017-04-15 13:17:34.975750300 +0200
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned
+--- inet-3.5.0/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadio.ned	2017-04-15 13:17:34.975750300 +0200
 @@ -30,20 +30,21 @@
          carrierFrequency = 2450 MHz;
  
@@ -171,9 +334,9 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
 -        @class(Radio);
 +        @class(FlatRadioBase);
  }
-diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned
---- git_inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned	2017-02-20 18:28:38.000000000 +0100
-+++ simulations/inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned	2017-04-15 13:51:01.839536300 +0200
+diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h inet-3.5.0/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned
+--- inet-3.5.0/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned	2017-02-20 18:28:38.000000000 +0100
++++ inet/src/inet/physicallayer/ieee802154/packetlevel/Ieee802154NarrowbandScalarRadioMedium.ned	2017-04-15 13:51:01.839536300 +0200
 @@ -26,6 +26,8 @@
          propagationType = default("ConstantSpeedPropagation");
          analogModelType = default("ScalarAnalogModel");
@@ -183,3 +346,97 @@ diff -Naur -x '*_m.cc' -x '*_m.h' -x '*.gch' -x '*.d' -x features.h git_inet/src
  
          // 802.15.4-2006, page 266
          pathLossType = default("BreakpointPathLoss");
+		 
+From 8d64440da4a0d6186a5227a3e10d9d85c659c1b9 Mon Sep 17 00:00:00 2001
+From: Rudolf Hornig <rudi@omnetpp.org>
+Date: Wed, 24 May 2017 14:53:25 +0200
+Subject: [PATCH] build: fix for #257
+
+INET is no longer using auto-import on Windows because it was generating
+more than 65536 symbols causing crashes in dependent models. INET_API
+macro should be used on all external INET API classes.
+
+diff --git a/.cproject b/.cproject
+index 02caa1f..75b2fe6 100644
+--- a/.cproject
++++ b/.cproject
+@@ -27,14 +27,14 @@
+ 							</builder>
+ 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1843986175" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
+ 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1544720771" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
+-								<option id="gnu.cpp.compiler.option.preprocessor.def.33891026" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols"/>
++								<option id="gnu.cpp.compiler.option.preprocessor.def.33891026" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false"/>
+ 								<option id="gnu.cpp.compiler.option.include.paths.1304941279" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+ 									<listOptionValue builtIn="false" value="../../src"/>
+ 								</option>
+ 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1163034331" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+ 							</tool>
+ 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.892294620" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
+-								<option id="gnu.c.compiler.option.preprocessor.def.symbols.193803687" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols"/>
++								<option id="gnu.c.compiler.option.preprocessor.def.symbols.193803687" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false"/>
+ 								<option id="gnu.c.compiler.option.include.paths.552444216" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+ 									<listOptionValue builtIn="false" value="../../src"/>
+ 								</option>
+@@ -84,14 +84,14 @@
+ 							<builder id="org.omnetpp.cdt.gnu.builder.release.1176677325" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="OMNeT++ Make Builder (opp_makemake)" superClass="org.omnetpp.cdt.gnu.builder.release"/>
+ 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1643927787" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
+ 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1039888888" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
+-								<option id="gnu.cpp.compiler.option.preprocessor.def.655304152" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols"/>
++								<option id="gnu.cpp.compiler.option.preprocessor.def.655304152" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false"/>
+ 								<option id="gnu.cpp.compiler.option.include.paths.1086707691" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+ 									<listOptionValue builtIn="false" value="../../src"/>
+ 								</option>
+ 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.958073850" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+ 							</tool>
+ 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.419916163" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
+-								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1241715501" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols"/>
++								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1241715501" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false"/>
+ 								<option id="gnu.c.compiler.option.include.paths.951413942" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+ 									<listOptionValue builtIn="false" value="../../src"/>
+ 								</option>
+diff --git a/.oppbuildspec b/.oppbuildspec
+index 88f99aa..bb9d2c5 100644
+--- a/.oppbuildspec
++++ b/.oppbuildspec
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+ <buildspec version="4.0">
+     <dir path="." type="custom"/>
+-    <dir makemake-options="--deep --make-so -o INET -O out --meta:export-include-path --meta:export-library --meta:use-exported-libs --meta:feature-cflags --meta:feature-ldflags" path="src" type="makemake"/>
++    <dir makemake-options="--make-so --deep -o INET -O out -pINET --meta:export-include-path --meta:export-library --meta:use-exported-libs --meta:feature-cflags --meta:feature-ldflags" path="src" type="makemake"/>
+ </buildspec>
+diff --git a/Makefile b/Makefile
+index 4047187..a8cde1e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -14,7 +14,7 @@ cleanall: checkmakefiles
+ 	@rm -f src/Makefile $(FEATURES_H)
+ 	@cd tutorials && $(MAKE) clean && rm -rf doc/tutorials
+ 
+-MAKEMAKE_OPTIONS := -f --deep -o INET -O out -I.
++MAKEMAKE_OPTIONS := -f --deep -o INET -O out -pINET -I.
+ 
+ makefiles: makefiles-so
+ 
+diff --git a/src/makefrag b/src/makefrag
+index df40d8e..1c222ec 100644
+--- a/src/makefrag
++++ b/src/makefrag
+@@ -1,9 +1,12 @@
+ #
+-# on windows we have to link with the winsock2 library as it is no longer added
++# on windows we have to link with the ws2_32 (winsock2) library as it is no longer added
+ # to the omnetpp system libraries by default (as of OMNeT++ 5.1)
+ #
+ ifeq ($(PLATFORM),win32.x86_64)
+-  LIBS += -lwsock32
++  LIBS += -lws2_32
++  DEFINES += -DINET_EXPORT
++  ENABLE_AUTO_IMPORT=-Wl,--enable-auto-import
++  LDFLAGS := $(filter-out $(ENABLE_AUTO_IMPORT), $(LDFLAGS))
+ endif
+ 
+ #
+-- 
+2.9.1
+
