@@ -62,6 +62,7 @@ class SPIN : public NetworkProtocolBase, public INetworkProtocol
     std::map<MsgMetadata, SPINDatagram*, MsgMetadataCompare> queuedRequests;
     std::set<MsgMetadata, MsgMetadataCompare> knownMessages;
     std::set<MsgMetadata, MsgMetadataCompare> requestedMessages;
+    std::list<CheckMessage *> checkTimers;
 
     long nbDataPacketsReceived = 0;
     long nbDataPacketsSent = 0;
@@ -80,6 +81,11 @@ class SPIN : public NetworkProtocolBase, public INetworkProtocol
     }
 
     virtual void initialize(int) override;
+
+    virtual bool handleNodeStart(IDoneCallback *doneCallback) override;
+    virtual bool handleNodeShutdown(IDoneCallback *doneCallback) override;
+    virtual void handleNodeCrash() override;
+    virtual void cancelTimers();
 
     virtual void handleSelfMessage(cMessage *msg) override;
 

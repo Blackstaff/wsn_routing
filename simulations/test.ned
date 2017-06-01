@@ -38,34 +38,34 @@ network Test
         scenarioManager: ScenarioManager {
             @display("p=54,160");
         }
-        wsnSensorNode: WSNSensorNode {
+        sensor0: WSNSensorNode {
             @display("p=235,86");
         }
-        wsnSinkNode: WSNSinkNode {
+        sink: WSNSinkNode {
             @display("p=235,176");
         }
         radioMedium: Ieee802154NarrowbandScalarRadioMedium {
             @display("p=53,51");
         }
-        wsnSensorNode1: WSNSensorNode {
+        sensor1: WSNSensorNode {
             @display("p=139,258");
         }
-        wsnSensorNode2: WSNSensorNode {
+        sensor2: WSNSensorNode {
             @display("p=515,458");
         }
-        wsnSensorNode3: WSNSensorNode {
+        sensor3: WSNSensorNode {
             @display("p=280,226");
         }
-        wsnSensorNode4: WSNSensorNode {
+        sensor4: WSNSensorNode {
             @display("p=367,291");
         }
-        wsnSensorNode5: WSNSensorNode {
+        sensor5: WSNSensorNode {
             @display("p=433,345");
         }
-        wsnSensorNode6: WSNSensorNode {
+        sensor6: WSNSensorNode {
             @display("p=482,398");
         }
-        wsnSensorNode7: WSNSensorNode {
+        sensor7: WSNSensorNode {
             @display("p=330,259");
         }
     connections:

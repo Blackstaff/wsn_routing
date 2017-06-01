@@ -36,6 +36,9 @@ SPIN::~SPIN()
             queuedRequests.begin(); itr != queuedRequests.end(); itr++) {
         cancelAndDelete(itr->second);
     }
+    for (auto & elem : checkTimers) {
+        cancelAndDelete(elem);
+    }
     queuedMessages.clear();
     queuedRequests.clear();
     knownMessages.clear();
@@ -71,6 +74,41 @@ void SPIN::finish()
     }
 }
 
+bool SPIN::handleNodeStart(IDoneCallback *doneCallback)
+{
+    return true;
+}
+
+bool SPIN::handleNodeShutdown(IDoneCallback *doneCallback)
+{
+    cancelTimers();
+    return true;
+}
+
+void SPIN::handleNodeCrash()
+{
+    cancelTimers();
+}
+
+void SPIN::cancelTimers()
+{
+    for (std::map<MsgMetadata, SPINDatagram*>::iterator itr = queuedMessages.begin();
+            itr != queuedMessages.end(); itr++) {
+        cancelAndDelete(itr->second);
+    }
+
+    for (std::map<MsgMetadata, SPINDatagram*>::iterator itr =
+            queuedRequests.begin(); itr != queuedRequests.end(); itr++) {
+        cancelAndDelete(itr->second);
+    }
+    for (auto & elem : checkTimers) {
+        cancelAndDelete(elem);
+    }
+    queuedMessages.clear();
+    queuedRequests.clear();
+    checkTimers.clear();
+}
+
 void SPIN::handleUpperPacket(cPacket *m)
 {
     SPINDatagram *msg = encapsMsg(m, DATA);
@@ -98,6 +136,7 @@ void SPIN::handleLowerPacket(cPacket *m)
                 checkTimer->setNodeAddress(metadata.nodeAddress);
                 checkTimer->setSeqNum(metadata.seqNum);
                 checkTimer->setAdvertiser(msg->getAdvertiser());
+                checkTimers.push_back(checkTimer);
                 scheduleAt(simTime() + uniform(30, 40) / 1000, checkTimer);
             }
             delete m;
@@ -165,6 +204,7 @@ void SPIN::handleSelfMessage(cMessage *m)
             scheduleReq(metadata, msg->getAdvertiser());
             scheduleAt(simTime() + uniform(30, 40) / 1000, msg);
         } else {
+            checkTimers.remove(msg);
             delete msg;
         }
     } else {

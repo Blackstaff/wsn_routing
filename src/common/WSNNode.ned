@@ -30,11 +30,25 @@ module WSNNode like INetworkNode
     @networkNode();
     @display("bgb=327,252;i=device/device");
     string nicType = default("Ieee802154NarrowbandNic");
-    string batteryType = default("IdealEnergyStorage");
+    string energyStorageType = default("SimpleEnergyStorage");
     string networkLayerType = default("");
     string mobilityType = default("StationaryMobility");
     int numRadios = default(1);
     *.interfaceTableModule = absPath(".interfaceTable");
+    nic.radio.energyConsumerType = default("StateBasedEnergyConsumer");
+    nic.**.energySourceModule = default(absPath(".energyStorage"));
+    
+    //Energy Consumer parameters - based on ATmega256RFR2 (pages 555-566)
+    double radioMicrocontrollerConsumption @unit(W) = default(12.3mW);
+    nic.radio.energyConsumer.offPowerConsumption = default(0mW);
+    nic.radio.energyConsumer.sleepPowerConsumption = default(0.00225mW);
+    nic.radio.energyConsumer.switchingPowerConsumption = default(radioMicrocontrollerConsumption);
+    nic.radio.energyConsumer.receiverIdlePowerConsumption = default(18mW + radioMicrocontrollerConsumption);
+    nic.radio.energyConsumer.receiverBusyPowerConsumption = default(18mW + radioMicrocontrollerConsumption);
+    nic.radio.energyConsumer.receiverReceivingPowerConsumption = default(18mW + radioMicrocontrollerConsumption);
+    nic.radio.energyConsumer.transmitterIdlePowerConsumption = default(17.1mW + radioMicrocontrollerConsumption);
+    nic.radio.energyConsumer.transmitterTransmittingPowerConsumption = default(43.5mW + radioMicrocontrollerConsumption);
+    
     gates:
         input radioIn[numRadios] @directIn;
         inout pppg[] @labels(PPPFrame-conn) @loose;
@@ -55,7 +69,7 @@ module WSNNode like INetworkNode
         networkLayer: <networkLayerType> like INetworkLayer {
             @display("p=147,111");
         }
-        battery: <batteryType> like IEnergyStorage {
+        energyStorage: <energyStorageType> like IEnergyStorage {
             @display("p=45,86");
         }
         mobility: <mobilityType> like IMobility {

@@ -64,6 +64,7 @@ void WSNSensorApp::initialize(int stage)
         timer = new cMessage("sendTimer");
         nodeStatus = dynamic_cast<NodeStatus *>(findContainingNode(this)->getSubmodule("status"));
         isOperational = (!nodeStatus) || nodeStatus->getState() == NodeStatus::UP;
+        setOperational(isOperational);
     }
     else if (stage == INITSTAGE_LAST) {
         if (!broadcastSinkAddress) {

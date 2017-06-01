@@ -123,6 +123,35 @@ void LEACH::finish()
     recordScalar("nbDataPacketsForwarded", nbDataPacketsForwarded);
 }
 
+bool LEACH::handleNodeStart(IDoneCallback *doneCallback)
+{
+    if(!isSink) setTimer(START_ROUND, 0);
+    return true;
+}
+
+bool LEACH::handleNodeShutdown(IDoneCallback *doneCallback)
+{
+    cancelTimers();
+    return true;
+}
+
+void LEACH::handleNodeCrash()
+{
+    cancelTimers();
+}
+
+void LEACH::cancelTimers()
+{
+    for (std::vector<TimerServiceMessage*>::iterator itr = timerMessages.begin();
+            itr != timerMessages.end(); itr++) {
+        TimerServiceMessage* msg = *itr;
+        if (msg != NULL) {
+            cancelAndDelete(msg);
+        }
+    }
+    timerMessages.clear();
+}
+
 void LEACH::handleSelfMessage(cMessage *msg)
 {
     int msgKind = msg->getKind();

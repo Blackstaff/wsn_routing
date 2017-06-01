@@ -129,6 +129,11 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
 
     virtual void initialize(int) override;
 
+    virtual bool handleNodeStart(IDoneCallback *doneCallback) override;
+    virtual bool handleNodeShutdown(IDoneCallback *doneCallback) override;
+    virtual void handleNodeCrash() override;
+    virtual void cancelTimers();
+
     virtual void handleSelfMessage(cMessage *msg) override;
 
     /** @brief Handle messages from upper layer */
