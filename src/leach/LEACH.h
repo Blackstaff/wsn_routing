@@ -36,6 +36,7 @@
 #include "inet/networklayer/contract/INetworkProtocol.h"
 #include "inet/networklayer/base/NetworkProtocolBase.h"
 #include "inet/networklayer/common/L3Address.h"
+#include "inet/physicallayer/base/packetlevel/FlatRadioBase.h"
 
 #include "LEACHPacket_m.h"
 
@@ -46,6 +47,7 @@
 #include "castalia_files/TimerServiceMessage_m.h"
 
 using namespace inet;
+using namespace physicallayer;
 using namespace std;
 
 enum LeachRoutingTimers {
@@ -103,6 +105,8 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     bool isSink;
     bool isCt;
     bool endFormClus;
+
+    FlatRadioBase *radio;
 
     queue<cPacket*> TXBuffer;
 

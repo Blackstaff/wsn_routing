@@ -110,6 +110,7 @@ void LEACH::initialize(int stage)
         setTimerDrift(1.0f + cpuClockDrift);
 
         if(!isSink) setTimer(START_ROUND, 0);
+        radio = check_and_cast<FlatRadioBase *>(getModuleByPath("^.^.nic.radio"));
     } else if (stage == INITSTAGE_NETWORK_LAYER_3) {
         myNetwAddr = interfaceTable->getInterface(0)->getMacAddress();
         sinkAddr = *(new L3Address(par("sinkAddr").stringValue()));
@@ -503,18 +504,18 @@ cMessage *LEACH::decapsMsg(LEACHPacket *msg)
 }
 
 void LEACH::setStateRx() {
-    EV << "setStateRx";
-    //send(createRadioCommand(SET_STATE, RX), "toMacModule");
+    EV << "setStateRx\n";
+    radio->setRadioMode(IRadio::RADIO_MODE_RECEIVER);
 }
 
 void LEACH::setPowerLevel(double powerLevel) {
-    EV << "setPowerLevel";
+    EV << "setPowerLevel\n";
     //send(createRadioCommand(SET_TX_OUTPUT, powerLevel), "toMacModule");
 }
 
 void LEACH::setStateSleep() {
-    EV << "setStateSleep";
-    //send(createRadioCommand(SET_STATE, SLEEP), "toMacModule");
+    EV << "setStateSleep\n";
+    radio->setRadioMode(IRadio::RADIO_MODE_SLEEP);
 }
 
 void LEACH::levelTxPower(int linkBudget) {
