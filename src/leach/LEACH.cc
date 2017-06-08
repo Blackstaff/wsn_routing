@@ -132,6 +132,20 @@ bool LEACH::handleNodeStart(IDoneCallback *doneCallback)
 bool LEACH::handleNodeShutdown(IDoneCallback *doneCallback)
 {
     cancelTimers();
+    while (!TXBuffer.empty()) {
+        delete TXBuffer.front();
+        TXBuffer.pop();
+    }
+    while (!tempTXBuffer.empty()) {
+        delete tempTXBuffer.front();
+        tempTXBuffer.pop();
+    }
+    for (std::vector<LEACHPacket *>::iterator itr = bufferAggregate.begin();
+            itr != bufferAggregate.end(); itr++) {
+        LEACHPacket* pkt = *itr;
+        cancelAndDelete(pkt);
+    }
+    bufferAggregate.clear();
     return true;
 }
 
