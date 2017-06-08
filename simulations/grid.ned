@@ -23,6 +23,7 @@ import inet.networklayer.generic.GenericRoutingTable;
 import inet.node.ethernet.EtherHost;
 import inet.node.rtp.RTPHost;
 import inet.physicallayer.ieee802154.packetlevel.Ieee802154NarrowbandScalarRadioMedium;
+import routing.common.misc.NodeCounter;
 import routing.common.sensor.WSNSensorApp;
 import routing.common.sensor.WSNSensorNode;
 import routing.common.sink.WSNSinkNode;
@@ -37,10 +38,10 @@ network Grid
         **.numHosts = numSensors;
     submodules:
         lifecycleController: LifecycleController {
-            @display("p=54,101");
+            @display("p=54.216,124.495995");
         }
         scenarioManager: ScenarioManager {
-            @display("p=54,160");
+            @display("p=52.208,210.84");
         }
         sensor[numSensors]: WSNSensorNode {
             //@display("p=235,86");
@@ -65,7 +66,10 @@ network Grid
             @display("p=53,51");
         }
         physicalEnvironment: PhysicalEnvironment {
-            @display("p=54,218");
+            @display("p=54.216,295.176");
+        }
+        nodeCounter: NodeCounter {
+            @display("p=52.208,383.52798");
         }
     connections:
 }

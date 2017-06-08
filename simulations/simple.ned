@@ -23,6 +23,7 @@ import inet.networklayer.generic.GenericRoutingTable;
 import inet.node.ethernet.EtherHost;
 import inet.node.rtp.RTPHost;
 import inet.physicallayer.ieee802154.packetlevel.Ieee802154NarrowbandScalarRadioMedium;
+import routing.common.misc.NodeCounter;
 import routing.common.sensor.WSNSensorApp;
 import routing.common.sensor.WSNSensorNode;
 import routing.common.sink.WSNSinkNode;
@@ -56,6 +57,9 @@ network Simple
         }
         physicalEnvironment: PhysicalEnvironment {
             @display("p=54,218");
+        }
+        nodeCounter: NodeCounter {
+            @display("p=53.927998,274.776");
         }
     connections:
 }
