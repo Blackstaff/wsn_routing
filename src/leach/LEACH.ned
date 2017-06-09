@@ -40,9 +40,10 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 	int netBufferSize = default(32);		
 	bool isSink = default(false);
 	int headerLength @unit(bytes) = default(14B);
+	double aggrConsumption @unit(J) = default(5*10e-9J);
 	
 	double percentage;	
-	double roundLength @unit(s);	
+	double roundLength @unit(s);
 	double slotLength;
 	
 	string sinkAddr = default("");
@@ -51,7 +52,7 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 	int advPacketSize @unit(byte) = default(9B); // Type + Source + Destination = 9 bytes
 	int joinPacketSize @unit(byte) = default(9B);
 	int tdmaPacketSize @unit(byte) = default(150B); // Type + Source + Destination + tdma = 150 bytes
-	int dataPacketSize @unit(byte) = default(9B);
+	int aggrPacketSize @unit(byte) = default(4B);
 	
 	double sigmaCPUClockDrift = default (0.00003);
     

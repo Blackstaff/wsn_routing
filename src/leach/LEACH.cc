@@ -81,9 +81,10 @@ void LEACH::initialize(int stage)
         advPacketSize = par("advPacketSize");
         joinPacketSize = par("joinPacketSize");
         tdmaPacketSize = par("tdmaPacketSize");
-        dataPacketSize = par("dataPacketSize");
+        aggrPacketSize = par("aggrPacketSize");
         headerLength = par("headerLength");
         netBufferSize = par("netBufferSize");
+        aggrConsumption = J(par("aggrConsumption"));
 
         CHcandidates.clear();
         clusterMembers.clear();
@@ -262,51 +263,7 @@ void LEACH::timerFiredCallback(int index) {
     switch (index) {
 
     case START_ROUND: {
-        setStateRx();
-        setPowerLevel(maxPower);
-        endFormClus = false;
-        CHcandidates.clear();
-        clusterMembers.clear();
-        if (getTimer(START_SLOT) != 0) {
-            cancelTimer(START_SLOT);
-        }
-
-        if (roundNumber >= 1 / percentage) {
-            roundNumber = 0;
-            isCt = false;
-            isCH = false;
-        }
-
-        double randomNumber = uniform(0, 1);
-        double timer = uniform(0, 1);
-        if (isCH) {
-            isCH = false;
-            isCt = true;
-        }
-        if (isCt) {
-            probability = 0;
-        } else {
-            if (roundNumber >= (1 / percentage - 1)) {
-                probability = 1;
-            } else {
-                probability =
-                        percentage
-                                / (1
-                                        - percentage
-                                                * (roundNumber
-                                                        % (int) (1 / percentage)));
-            }
-        }
-        if (randomNumber < probability) {
-            setTimer(SEND_ADV, (timer));
-            setTimer(MAKE_TDMA, 2.0 + timer);
-            //trace() << "Node " << self << " is Cluster Head.";
-            isCH = true;
-        }
-        if (!isCH)
-            setTimer(JOIN_CH, (1.0 + timer));
-        roundNumber++;
-        setTimer(START_ROUND, roundLength);
+        processStartRound();
         break;
     }
     case SEND_ADV: {
@@ -385,14 +342,72 @@ void LEACH::timerFiredCallback(int index) {
     }
 }
 
+void LEACH::processStartRound()
+{
+    setStateRx();
+    setPowerLevel(maxPower);
+    endFormClus = false;
+    CHcandidates.clear();
+    clusterMembers.clear();
+    if (getTimer(START_SLOT) != 0) {
+        cancelTimer(START_SLOT);
+    }
+
+    selectCH();
+
+    double timer = uniform(0, 1);
+    if (isCH) {
+        setTimer(SEND_ADV, (timer));
+        setTimer(MAKE_TDMA, 2.0 + timer);
+    } else {
+        setTimer(JOIN_CH, (1.0 + timer));
+    }
+
+    roundNumber++;
+    setTimer(START_ROUND, roundLength);
+}
+
+void LEACH::selectCH()
+{
+    if (roundNumber >= 1 / percentage) {
+        roundNumber = 0;
+        isCt = false;
+        isCH = false;
+    }
+
+    double randomNumber = uniform(0, 1);
+    if (isCH) {
+        isCH = false;
+        isCt = true;
+    }
+    if (isCt) {
+        probability = 0;
+    } else {
+        if (roundNumber >= (1 / percentage - 1)) {
+            probability = 1;
+        } else {
+            probability =
+                    percentage
+                    / (1
+                            - percentage
+                            * (roundNumber
+                                    % (int) (1 / percentage)));
+        }
+    }
+    if (randomNumber < probability) {
+        isCH = true;
+    }
+}
+
 void LEACH::sendAggregate() {
     int aggrNum = bufferAggregate.size();
     if (aggrNum != 0) {
-        //double bitsLength = bufferAggregate.size() * dataPacketSize * 1000;
-        //double energyBit = (aggrConsumption / pow(10, 9)) * bitsLength;
-        //powerDrawn(energyBit);
+        //int dataPacketSize = bufferAggregate.back()->getBitLength();
+        //double bitsLength = aggrNum * dataPacketSize;
+        //J energyBit = aggrConsumption * bitsLength;
+        //drawPower(energyBit);
         LEACHPacket *aggrPacket = new LEACHPacket("ClusterHead Aggregated Packet");
-        aggrPacket->setByteLength(dataPacketSize + 4);
+        aggrPacket->setByteLength(aggrPacketSize);
         aggrPacket->setType(LEACH_DATA_PACKET);
         aggrPacket->setSrcAddr(myNetwAddr);
         aggrPacket->setDestAddr(sinkAddr);
@@ -529,6 +544,11 @@ void LEACH::levelTxPower(int linkBudget) {
     }
 }
 
+void LEACH::drawPower(J power)
+{
+
+}
+
 void LEACH::readXMLparams() {
     cXMLElement *rootelement = par("powersConfig").xmlValue();
     if (!rootelement)
@@ -537,8 +557,6 @@ void LEACH::readXMLparams() {
     maxPower = atoi(data->getNodeValue());
     data = rootelement->getFirstChildWithTag("sensibility");
     sensibility = atoi(data->getNodeValue());
-    data = rootelement->getFirstChildWithTag("aggrConsumption");
-    aggrConsumption = atoi(data->getNodeValue());
     cXMLElementList sources = rootelement->getChildrenByTagName("power");
     for (int s = 0; s < sources.size(); s++)
         powers.push_back(atoi(sources[s]->getNodeValue()));

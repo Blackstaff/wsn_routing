@@ -17,5 +17,5 @@ import inet.networklayer.contract.INetworkLayer;
 module LEACHLayer extends SimpleNetworkLayer like INetworkLayer
 {
     @display("bgb=288,210");
-    networkProtocolType = "LEACH";
+    networkProtocolType = default("LEACH");
 }

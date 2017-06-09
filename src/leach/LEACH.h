@@ -84,12 +84,12 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
 
     int advPacketSize;
     int tdmaPacketSize;
-    int dataPacketSize;
+    int aggrPacketSize;
     int joinPacketSize;
 
     double maxPower;
     double sensibility;
-    double aggrConsumption;
+    J aggrConsumption;
 
     double slotLength;
     int clusterLength;
@@ -171,6 +171,9 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     virtual cObject *setDownControlInfo(cMessage * const pMsg,
             const MACAddress& pDestAddr);
 
+    virtual void processStartRound();
+    virtual void selectCH();
+
     int bufferPacket(cPacket *packet);
     void processBufferedPacket();
     void sendAggregate();
@@ -178,6 +181,7 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     void setStateSleep();
     void setStateRx();
     void levelTxPower(int);
+    virtual void drawPower(J power);
     void readXMLparams();
 
   /* TimerService */
