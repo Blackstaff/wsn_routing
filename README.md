@@ -4,16 +4,10 @@
 
     `git clone https://github.com/Blackstaff/wsn_routing.git`
 
-1. Download INET framwork v3.5
+1. Clone modified INET (v 3.5) framework into the same workspace folder as wsn_routing
 
-    Download link: [Inet 3.5](https://github.com/inet-framework/inet/releases/download/v3.5.0/inet-3.5.0-src.tgz)
+    `git clone -b wsn_routing_fixes --single-branch https://github.com/Blackstaff/wsn_routing.git inet`
 
-1. Extract INET into the same workspace folder as wsn_routing
-
-1. Apply inet.patch from wsn_routing.
-
-        cd inet
-        patch -p 1 < ../wsn_routing/inet.patch 
 ## Compile and run (CMD)
 1. Compile inet (run in inet folder):
 
