@@ -41,6 +41,7 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 	bool isSink = default(false);
 	int headerLength @unit(bytes) = default(14B);
 	double aggrConsumption @unit(J) = default(5*10e-9J);
+	string radioModule = default(absPath("^.^.nic.radio"));
 	
 	double percentage;	
 	double roundLength @unit(s);
@@ -55,6 +56,11 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 	int aggrPacketSize @unit(byte) = default(4B);
 	
 	double sigmaCPUClockDrift = default (0.00003);
+	
+	string powers = default("3.5 1.5 -2.5 -16.5"); // @unit(dBm)
+	string powerConsumptions = default("43.5 30 27 24"); // @unit(mW)
+	
+	@signal[transmitterPowerChanged](type=double);
     
     @class(LEACH);
 }

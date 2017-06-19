@@ -111,7 +111,8 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     queue<cPacket*> TXBuffer;
 
     vector<LEACHPacket*> bufferAggregate;
-    vector<int> powers;
+    vector<double> powers;
+    map<double, double> powerConsumptions;
     queue<cPacket *> tempTXBuffer;
     vector<L3Address> clusterMembers;
     list<CHInfo> CHcandidates;
@@ -119,6 +120,8 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     long nbDataPacketsReceived = 0;
     long nbDataPacketsSent = 0;
     long nbDataPacketsForwarded = 0;
+
+    static simsignal_t transmitterPowerChanged;
 
   public:
     LEACH() {}
@@ -180,9 +183,9 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     void setPowerLevel(double);
     void setStateSleep();
     void setStateRx();
-    void levelTxPower(int);
+    void levelTxPower(double);
     virtual void drawPower(J power);
-    void readXMLparams();
+    virtual void parseTransmitterPowers();
 
   /* TimerService */
   private:

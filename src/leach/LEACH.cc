@@ -28,6 +28,7 @@
 #include "inet/networklayer/common/SimpleNetworkProtocolControlInfo.h"
 #include "inet/networklayer/contract/IL3AddressType.h"
 #include "inet/common/INETMath.h"
+#include "inet/common/ModuleAccess.h"
 
 #include "LEACH.h"
 
@@ -35,6 +36,8 @@ using namespace omnetpp;
 using namespace inet;
 
 Define_Module(LEACH);
+
+simsignal_t LEACH::transmitterPowerChanged = registerSignal("transmitterPowerChanged");
 
 LEACH::~LEACH()
 {
@@ -94,6 +97,10 @@ void LEACH::initialize(int stage)
         endFormClus = false;
         isCt = false;
 
+        parseTransmitterPowers();
+        WATCH_VECTOR(powers);
+        WATCH_MAP(powerConsumptions);
+
         sigmaCPUClockDrift = par("sigmaCPUClockDrift");
         //using the "0" rng generator of the ResourceManager module
         cpuClockDrift = normal(0, sigmaCPUClockDrift);
@@ -111,7 +118,9 @@ void LEACH::initialize(int stage)
         setTimerDrift(1.0f + cpuClockDrift);
 
         if(!isSink) setTimer(START_ROUND, 0);
-        radio = check_and_cast<FlatRadioBase *>(getModuleByPath("^.^.nic.radio"));
+        radio = check_and_cast<FlatRadioBase *>(getModuleFromPar<cModule>(par("radioModule"), this));
+        sensibility = math::mW2dBm(radio->getReceiver()->getMinReceptionPower().get() * 1000) + 10;
+        WATCH(sensibility);
     } else if (stage == INITSTAGE_NETWORK_LAYER_3) {
         myNetwAddr = interfaceTable->getInterface(0)->getMacAddress();
         sinkAddr = *(new L3Address(par("sinkAddr").stringValue()));
@@ -123,6 +132,21 @@ void LEACH::finish()
     recordScalar("nbDataPacketsReceived", nbDataPacketsReceived);
     recordScalar("nbDataPacketsSent", nbDataPacketsSent);
     recordScalar("nbDataPacketsForwarded", nbDataPacketsForwarded);
+}
+
+void LEACH::parseTransmitterPowers()
+{
+    const char *powersStr = par("powers");
+    const char *consumptionsStr = par("powerConsumptions");
+
+    powers = cStringTokenizer(powersStr).asDoubleVector();
+    std::vector<double> consumptions = cStringTokenizer(consumptionsStr).asDoubleVector();
+
+    for (uint i = 0; i < powers.size(); i++) {
+        powerConsumptions[powers[i]] = consumptions[i];
+    }
+    sort(powers.begin(), powers.end());
+    maxPower = powers.back();
 }
 
 bool LEACH::handleNodeStart(IDoneCallback *doneCallback)
@@ -325,7 +349,7 @@ void LEACH::timerFiredCallback(int index) {
         }
         if (!isCH) {
             CHInfo info = *CHcandidates.begin();
-            int power = maxPower - ((info.rssi) - (sensibility));
+            double power = maxPower - ((info.rssi) - (sensibility));
             levelTxPower(power);
             //trace() << "Node " << self << " Sent Data Packet"  << "\n";
             processBufferedPacket();
@@ -520,11 +544,16 @@ cMessage *LEACH::decapsMsg(LEACHPacket *msg)
 
 void LEACH::setStateRx() {
     EV << "setStateRx\n";
-    radio->setRadioMode(IRadio::RADIO_MODE_RECEIVER);
+    if (radio->getRadioMode() != IRadio::RADIO_MODE_RECEIVER) {
+        radio->setRadioMode(IRadio::RADIO_MODE_RECEIVER);
+    }
 }
 
 void LEACH::setPowerLevel(double powerLevel) {
-    EV << "setPowerLevel\n";
+    EV << "Set transmitter power level to" << powerLevel << "dBm\n";
+    mW power = mW(math::dBm2mW(powerLevel));
+    radio->setPower(power);
+    emit(transmitterPowerChanged, powerConsumptions[powerLevel]);
     //send(createRadioCommand(SET_TX_OUTPUT, powerLevel), "toMacModule");
 }
 
@@ -533,36 +562,22 @@ void LEACH::setStateSleep() {
     radio->setRadioMode(IRadio::RADIO_MODE_SLEEP);
 }
 
-void LEACH::levelTxPower(int linkBudget) {
-    vector<int>::iterator constIterator;
+void LEACH::levelTxPower(double linkBudget) {
+    vector<double>::iterator constIterator;
+    double powerLevel = maxPower;
     for (constIterator = powers.begin(); constIterator != powers.end();
             constIterator++) {
         if (*constIterator > (linkBudget)) {
-            setPowerLevel(*constIterator);
+            powerLevel = *constIterator;
             break;
         }
     }
+    setPowerLevel(powerLevel);
 }
 
 void LEACH::drawPower(J power)
 {
 
-}
-
-void LEACH::readXMLparams() {
-    cXMLElement *rootelement = par("powersConfig").xmlValue();
-    if (!rootelement)
-        endSimulation();
-    cXMLElement* data = rootelement->getFirstChildWithTag("maxPower");
-    maxPower = atoi(data->getNodeValue());
-    data = rootelement->getFirstChildWithTag("sensibility");
-    sensibility = atoi(data->getNodeValue());
-    cXMLElementList sources = rootelement->getChildrenByTagName("power");
-    for (int s = 0; s < sources.size(); s++)
-        powers.push_back(atoi(sources[s]->getNodeValue()));
-    if (powers.size() < 1)
-        endSimulation();
-    sort(powers.begin(), powers.end());
 }
 
 cObject *LEACH::setDownControlInfo(cMessage *const pMsg, const MACAddress& pDestAddr)

@@ -35,11 +35,12 @@ module WSNNode like INetworkNode
     string mobilityType = default("StationaryMobility");
     int numRadios = default(1);
     *.interfaceTableModule = absPath(".interfaceTable");
-    nic.radio.energyConsumerType = default("StateBasedEnergyConsumer");
+    nic.radio.energyConsumerType = default("VolatileStateBasedEnergyConsumer");
     nic.**.energySourceModule = default(absPath(".energyStorage"));
     
     //Energy Consumer parameters - based on ATmega256RFR2 (pages 555-566)
     double radioMicrocontrollerConsumption @unit(W) = default(12.3mW);
+    nic.radio.energyConsumer.baseConsumption = radioMicrocontrollerConsumption;
     nic.radio.energyConsumer.offPowerConsumption = default(0mW);
     nic.radio.energyConsumer.sleepPowerConsumption = default(0.00225mW);
     nic.radio.energyConsumer.switchingPowerConsumption = default(radioMicrocontrollerConsumption);
