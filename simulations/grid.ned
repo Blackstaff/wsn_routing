@@ -44,20 +44,6 @@ network Grid
             @display("p=52.208,210.84");
         }
         sensor[numSensors]: WSNSensorNode {
-            //@display("p=235,86");
-            mobilityType = "StaticGridMobility";
-            mobility.initFromDisplayString = false;
-            mobility.marginX = 6m;
-            mobility.marginY = 6m;
-            mobility.initialZ = 0m;
-            mobility.constraintAreaMinX = default(200m);
-            mobility.constraintAreaMinY = default(200m);
-            mobility.constraintAreaMinZ = default(-1m/0);
-            mobility.constraintAreaMaxX = default(1000m);
-            mobility.constraintAreaMaxY = default(1000m);
-            mobility.constraintAreaMaxZ = default(1m/0);
-            //mobility.separationX = 6m;
-            //mobility.separationY = 6m;
         }
         sink: WSNSinkNode {
             @display("p=540,181");

@@ -43,11 +43,6 @@ network Simple
             @display("p=54,160");
         }
         sensor[numSensors]: WSNSensorNode {
-            //@display("p=235,86");
-            mobility.initFromDisplayString = false;
-            mobility.initialX = replaceUnit(normal(300, 100), "m");
-            mobility.initialY = replaceUnit(normal(300, 100), "m");
-            mobility.initialZ = 0m;
         }
         sink: WSNSinkNode {
             @display("p=235,176");
