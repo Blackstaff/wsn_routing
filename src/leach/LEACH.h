@@ -38,6 +38,7 @@
 #include "inet/networklayer/common/L3Address.h"
 #include "inet/physicallayer/base/packetlevel/FlatRadioBase.h"
 
+#include "../common/energyconsumer/SimpleEnergyConsumer.h"
 #include "LEACHPacket_m.h"
 
 #define TIMER_MIN_SIZE 8
@@ -90,6 +91,7 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     double maxPower;
     double sensibility;
     J aggrConsumption;
+    double consumptionInterval;
 
     double slotLength;
     int clusterLength;
@@ -107,6 +109,7 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     bool endFormClus;
 
     FlatRadioBase *radio;
+    SimpleEnergyConsumer *energyConsumer;
 
     queue<cPacket*> TXBuffer;
 
@@ -184,7 +187,7 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     void setStateSleep();
     void setStateRx();
     void levelTxPower(double);
-    virtual void drawPower(J power);
+    virtual void drawPower(J energy);
     virtual void parseTransmitterPowers();
 
   /* TimerService */
