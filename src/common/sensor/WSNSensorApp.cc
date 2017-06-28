@@ -67,7 +67,7 @@ void WSNSensorApp::initialize(int stage)
         setOperational(isOperational);
     }
     else if (stage == INITSTAGE_LAST) {
-        if (!broadcastSinkAddress) {
+        if (!broadcastSinkAddress && par("destAddresses").str() == "") {
             par("destAddresses") = MACAddress::BROADCAST_ADDRESS.str();
         }
 
