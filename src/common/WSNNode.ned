@@ -20,6 +20,7 @@ import inet.networklayer.contract.INetworkLayer;
 import inet.node.inet.INetworkNode;
 import inet.node.inet.NodeBase;
 import inet.power.contract.IEnergyStorage;
+import routing.common.misc.NodeMonitor;
 
 
 //
@@ -37,7 +38,7 @@ module WSNNode like INetworkNode
     *.interfaceTableModule = absPath(".interfaceTable");
     nic.radio.energyConsumerType = default("VolatileStateBasedEnergyConsumer");
     nic.**.energySourceModule = default(absPath(".energyStorage"));
-    
+
     //Energy Consumer parameters - based on ATmega256RFR2 (pages 555-566)
     double radioMicrocontrollerConsumption @unit(W) = default(12.3mW);
     nic.radio.energyConsumer.baseConsumption = radioMicrocontrollerConsumption;
@@ -75,6 +76,9 @@ module WSNNode like INetworkNode
         }
         mobility: <mobilityType> like IMobility {
             @display("p=45,23");
+        }
+        nodeMonitor: NodeMonitor {
+            @display("p=290,23");
         }
     connections:
         networkLayer.ifOut++ --> lo0.upperLayerIn;
