@@ -22,7 +22,7 @@ simple WSNSinkApp like IWSNApp
     	string interfaceTableModule;
     	bool broadcastSinkAddress = default(true);
         @signal[rcvdPk](type=cPacket);
-        @statistic[rcvdPk](title="packets received"; source=rcvdPk; record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);
+        @statistic[rcvdPk](title="packets received"; source=rcvdPk; record=count,"sum(packetBytes)","vector(count)"; interpolationmode=none);
         @statistic[endToEndDelay](title="end-to-end delay"; source="messageAge(rcvdPk)"; unit=s; record=histogram,vector; interpolationmode=none);
     gates:
         input appIn;
