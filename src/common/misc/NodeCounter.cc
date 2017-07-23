@@ -14,6 +14,12 @@ Define_Module(NodeCounter);
 
 simsignal_t NodeCounter::aliveNodesChangedSignal = registerSignal("aliveNodesChanged");
 simsignal_t NodeCounter::sinkDownSignal = registerSignal("sinkDown");
+simsignal_t NodeCounter::firstNodeDownSignal = registerSignal("firstNodeDown");
+
+NodeCounter::NodeCounter() :
+    firstNodeDown(false)
+{
+}
 
 void NodeCounter::initialize(int stage)
 {
@@ -21,6 +27,7 @@ void NodeCounter::initialize(int stage)
     EV << "Initializing NodeCounter, stage = " << stage << endl;
     if (stage == INITSTAGE_LOCAL) {
         aliveNodes = par("numSensors");
+        firstNodeDown = false;
         getSimulation()->getSystemModule()->subscribe(NodeStatus::nodeStatusChangedSignal, this);
         WATCH(aliveNodes);
         emit(aliveNodesChangedSignal, aliveNodes);
@@ -39,6 +46,10 @@ void NodeCounter::receiveSignal(cComponent *source, simsignal_t signalID, cObjec
         if (nodeStatus->getState() == NodeStatus::DOWN) {
             --aliveNodes;
             emit(aliveNodesChangedSignal, aliveNodes);
+            if (!firstNodeDown) {
+                emit(firstNodeDownSignal, simTime());
+                firstNodeDown = true;
+            }
         } else if (nodeStatus->getState() == NodeStatus::UP) {
             ++aliveNodes;
             emit(aliveNodesChangedSignal, aliveNodes);

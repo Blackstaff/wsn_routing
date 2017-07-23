@@ -50,7 +50,17 @@ module WSNNode like INetworkNode
     nic.radio.energyConsumer.receiverReceivingPowerConsumption = default(18mW + radioMicrocontrollerConsumption);
     nic.radio.energyConsumer.transmitterIdlePowerConsumption = default(17.1mW + radioMicrocontrollerConsumption);
     nic.radio.energyConsumer.transmitterTransmittingPowerConsumption = default(43.5mW + radioMicrocontrollerConsumption);
-    
+
+    //    switchingTimes parameter should be regarded as a 5x5 matrix:
+    //
+    //               OFF SLEEP RECEIVER TRANSMITTER TRANSCEIVER
+    // OFF           0 170000 520000 520000 520000
+    // SLEEP         0 0 350000 350000 350000
+    // RECEIVER      1000 1000 0 1000 1000
+    // TRANSMITTER   1000 1000 1000 0 1000
+    // TRANSCEIVER   1000 1000 1000 1000 0
+    //nic.radio.switchingTimes = default("ns 0 170000 520000 520000 520000 0 0 350000 350000 350000 1000 1000 0 1000 1000 1000 1000 1000 0 1000 1000 1000 1000 1000 0");
+
     gates:
         input radioIn[numRadios] @directIn;
         inout pppg[] @labels(PPPFrame-conn) @loose;

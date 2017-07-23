@@ -20,11 +20,14 @@ class NodeCounter : public cSimpleModule, public cListener
   public:
     static simsignal_t aliveNodesChangedSignal;
     static simsignal_t sinkDownSignal;
+    static simsignal_t firstNodeDownSignal;
+    bool firstNodeDown;
 
   protected:
     int aliveNodes;
 
   public:
+    NodeCounter();
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *status, cObject *details) override;
 
   protected:
