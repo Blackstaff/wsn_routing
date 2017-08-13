@@ -37,18 +37,17 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 {
 	int maxNetFrameSize = default(0);
 	//int netDataFrameOverhead = default(14);
-	int netBufferSize = default(32);		
+	int netBufferSize = default(32);
 	bool isSink = default(false);
 	int headerLength @unit(bytes) = default(14B);
 	double aggrConsumption @unit(J) = default(5*10e-9J); // 5nJ
 	double consumptionInterval @unit(s) = default(1ns);
 	string radioModule = default(absPath("^.^.nic.radio"));
 	string energyConsumerModule;
-	
-	double percentage;	
+
+	double percentage;
 	double roundLength @unit(s);
-	double slotLength;
-	
+
 	string sinkAddr = default("");
 
 	//routing layer packet sizes
@@ -56,13 +55,13 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 	int joinPacketSize @unit(byte) = default(9B);
 	int tdmaPacketSize @unit(byte) = default(150B); // Type + Source + Destination + tdma = 150 bytes
 	int aggrPacketSize @unit(byte) = default(4B);
-	
+
 	double sigmaCPUClockDrift = default (0.00003);
-	
+
 	string powers = default("3.5 1.5 -2.5 -16.5"); // @unit(dBm)
 	string powerConsumptions = default("43.5 30 27 24"); // @unit(mW)
-	
+
 	@signal[transmitterPowerChanged](type=double);
-    
+
     @class(LEACH);
 }

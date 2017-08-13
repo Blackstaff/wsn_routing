@@ -80,7 +80,7 @@ void LEACH::initialize(int stage)
         percentage = par("percentage");
         roundLength = par("roundLength");
         isSink = par("isSink");
-        slotLength = par("slotLength");
+        slotLength = 0;
         advPacketSize = par("advPacketSize");
         joinPacketSize = par("joinPacketSize");
         tdmaPacketSize = par("tdmaPacketSize");
@@ -272,6 +272,7 @@ void LEACH::handleLowerPacket(cPacket *m)
         case LEACH_TDMA_PACKET:
             if (!isCH && !isSink) {
                 clusterLength = msg->getScheduleArraySize();
+                slotLength = roundLength*0.5 / clusterLength;
                 for (int i = 0; i < clusterLength; i++) {
                     if (msg->getSchedule(i) == myNetwAddr) {
                         setStateSleep();
@@ -290,6 +291,11 @@ void LEACH::timerFiredCallback(int index) {
     switch (index) {
 
     case START_ROUND: {
+        if (isCH) {
+            sendAggregate();
+            processBufferedPacket();
+            //trace() << "Node " << self << " Sent Pkt Aggr"  << "\n";
+        }
         processStartRound();
         break;
     }
@@ -335,21 +341,10 @@ void LEACH::timerFiredCallback(int index) {
             setDownControlInfo(crtlPkt, MACAddress::BROADCAST_ADDRESS);
             sendDown(crtlPkt);
             //trace() << "Node " << self << " Sent TDMA pkt";
-            setTimer(START_SLOT, clusterLength * slotLength);
-        } else
-            setTimer(START_SLOT, slotLength);
+        }
         break;
     }
     case START_SLOT: {
-        if (isCH && clusterMembers.size() == 0)
-            setTimer(START_SLOT, slotLength);
-        else
-            setTimer(START_SLOT, clusterLength * slotLength);
-        if (isCH) {
-            sendAggregate();
-            processBufferedPacket();
-            //trace() << "Node " << self << " Sent Pkt Aggr"  << "\n";
-        }
         if (!isCH) {
             CHInfo info = *CHcandidates.begin();
             double power = maxPower - ((info.rssi) - (sensibility));
@@ -672,4 +667,3 @@ simtime_t LEACH::getClock()
 {
     return simTime() * timerDrift;
 }
-
