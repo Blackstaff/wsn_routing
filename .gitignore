@@ -17,6 +17,7 @@ src/Makefile.vc
 *.sca
 *.vec
 *.vci
+*.vec-journal
 .buildlog*
 
 # ignore binary files
