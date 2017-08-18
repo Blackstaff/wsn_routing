@@ -272,7 +272,7 @@ void LEACH::handleLowerPacket(cPacket *m)
         case LEACH_TDMA_PACKET:
             if (!isCH && !isSink) {
                 clusterLength = msg->getScheduleArraySize();
-                slotLength = roundLength*0.5 / clusterLength;
+                slotLength = roundLength*0.9 / clusterLength;
                 for (int i = 0; i < clusterLength; i++) {
                     if (msg->getSchedule(i) == myNetwAddr) {
                         setStateSleep();
@@ -377,12 +377,13 @@ void LEACH::processStartRound()
 
     selectCH();
 
-    double timer = uniform(0, 1);
+    double setupTime = roundLength * 0.1;
+    double timer = uniform(0, setupTime * 0.1);
     if (isCH) {
         setTimer(SEND_ADV, (timer));
-        setTimer(MAKE_TDMA, 2.0 + timer);
+        setTimer(MAKE_TDMA, setupTime*0.9 + timer);
     } else {
-        setTimer(JOIN_CH, (1.0 + timer));
+        setTimer(JOIN_CH, (setupTime*0.45 + timer));
     }
 
     roundNumber++;
