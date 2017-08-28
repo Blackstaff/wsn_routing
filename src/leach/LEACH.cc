@@ -290,8 +290,6 @@ void LEACH::timerFiredCallback(int index) {
     case START_ROUND: {
         if (isCH) {
             sendAggregate();
-            processBufferedPacket();
-            //trace() << "Node " << self << " Sent Pkt Aggr"  << "\n";
         }
         processStartRound();
         break;
@@ -445,8 +443,8 @@ void LEACH::sendAggregate() {
         aggrPacket->encapsulate(sumPacket);
         aggrPacket->setAggrNum(aggrNum);
 
-        bufferPacket(aggrPacket);
-        //bufferAggregate.clear();
+        setDownControlInfo(aggrPacket, MACAddress::BROADCAST_ADDRESS);
+        sendDown(aggrPacket);
     }
 }
 
