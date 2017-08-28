@@ -92,6 +92,7 @@ class LEACH : public NetworkProtocolBase, public INetworkProtocol
     double sensibility;
     J aggrConsumption;
     double consumptionInterval;
+    double aggrCoefficient;
 
     double slotLength;
     int clusterLength;

@@ -89,6 +89,7 @@ void LEACH::initialize(int stage)
         netBufferSize = par("netBufferSize");
         aggrConsumption = J(par("aggrConsumption"));
         consumptionInterval = par("consumptionInterval");
+        aggrCoefficient = par("aggrCoefficient");
 
         CHcandidates.clear();
         clusterMembers.clear();
@@ -445,6 +446,9 @@ void LEACH::sendAggregate() {
             bufferAggregate.pop_back();
             cancelAndDelete(packet);
         }
+
+        sumPacket->setByteLength((sumPacket->getByteLength() / aggrNum) +
+          aggrCoefficient * (sumPacket->getByteLength() - (sumPacket->getByteLength() / aggrNum)));
 
         aggrPacket->encapsulate(sumPacket);
         aggrPacket->setAggrNum(aggrNum);

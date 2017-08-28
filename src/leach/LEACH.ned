@@ -42,6 +42,7 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 	int headerLength @unit(bytes) = default(14B);
 	double aggrConsumption @unit(J) = default(5*10e-9J); // 5nJ
 	double consumptionInterval @unit(s) = default(1ns);
+	double aggrCoefficient = default(0.05);
 	string radioModule = default(absPath("^.^.nic.radio"));
 	string energyConsumerModule;
 
