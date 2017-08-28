@@ -87,8 +87,6 @@ void LEACH::initialize(int stage)
         aggrPacketSize = par("aggrPacketSize");
         headerLength = par("headerLength");
         netBufferSize = par("netBufferSize");
-        aggrConsumption = J(par("aggrConsumption"));
-        consumptionInterval = par("consumptionInterval");
         aggrCoefficient = par("aggrCoefficient");
 
         CHcandidates.clear();
@@ -123,8 +121,6 @@ void LEACH::initialize(int stage)
         radio = check_and_cast<FlatRadioBase *>(getModuleFromPar<cModule>(par("radioModule"), this));
         sensibility = math::mW2dBm(radio->getReceiver()->getMinReceptionPower().get() * 1000) + 10;
         WATCH(sensibility);
-
-        energyConsumer = check_and_cast<SimpleEnergyConsumer *>(getModuleFromPar<cModule>(par("energyConsumerModule"), this));
     } else if (stage == INITSTAGE_NETWORK_LAYER_3) {
         myNetwAddr = interfaceTable->getInterface(0)->getMacAddress();
         sinkAddr = *(new L3Address(par("sinkAddr").stringValue()));
@@ -426,10 +422,6 @@ void LEACH::selectCH()
 void LEACH::sendAggregate() {
     int aggrNum = bufferAggregate.size();
     if (aggrNum != 0) {
-        int dataPacketSize = bufferAggregate.back()->getBitLength();
-        double bitsLength = aggrNum * dataPacketSize;
-        J energyBit = aggrConsumption * bitsLength;
-        drawPower(energyBit);
         LEACHPacket *aggrPacket = new LEACHPacket("ClusterHead Aggregated Packet");
         aggrPacket->setByteLength(aggrPacketSize);
         aggrPacket->setType(LEACH_DATA_PACKET);
@@ -576,12 +568,6 @@ void LEACH::levelTxPower(double linkBudget) {
         }
     }
     setPowerLevel(powerLevel);
-}
-
-void LEACH::drawPower(J energy)
-{
-    W power = W(energy.get() / consumptionInterval);
-    energyConsumer->setPowerConsumption(power);
 }
 
 cObject *LEACH::setDownControlInfo(cMessage *const pMsg, const MACAddress& pDestAddr)
