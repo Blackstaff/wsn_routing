@@ -52,7 +52,7 @@ simple LEACH extends NetworkProtocolBase like INetworkProtocol
 	int advPacketSize @unit(byte) = default(9B); // Type + Source + Destination = 9 bytes
 	int joinPacketSize @unit(byte) = default(9B);
 	int tdmaPacketSize @unit(byte) = default(150B); // Type + Source + Destination + tdma = 150 bytes
-	int aggrPacketSize @unit(byte) = default(4B);
+	int aggrPacketSize @unit(byte) = default(14B);
 
 	double sigmaCPUClockDrift = default (0.00003);
 

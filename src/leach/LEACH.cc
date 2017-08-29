@@ -431,7 +431,7 @@ void LEACH::sendAggregate() {
 
         while(!bufferAggregate.empty()) {
             LEACHPacket *packet = bufferAggregate.back();
-            int packetLength = packet->getByteLength();
+            int packetLength = packet->decapsulate()->getByteLength();
             sumPacket->setByteLength(sumPacket->getByteLength() + packetLength);
             bufferAggregate.pop_back();
             cancelAndDelete(packet);
