@@ -19,6 +19,7 @@ import inet.networklayer.base.NetworkProtocolBase;
 simple SPIN extends NetworkProtocolBase like INetworkProtocol
 {
     int headerLength @unit(bit) = default(100b); // length of the network packet header (in bits)
+    string energyStorageModule = default("^.^.energyStorage");
 
     @class(SPIN);
 }

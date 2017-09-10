@@ -11,6 +11,7 @@
 #include "inet/linklayer/common/SimpleLinkLayerControlInfo.h"
 #include "inet/networklayer/common/SimpleNetworkProtocolControlInfo.h"
 #include "inet/networklayer/contract/IL3AddressType.h"
+#include "inet/common/ModuleAccess.h"
 
 #include "SPIN.h"
 
@@ -56,8 +57,12 @@ void SPIN::initialize(int stage)
         nbDataPacketsForwarded = 0;
         nbHops = 0;
         headerLength = par("headerLength");
+        cModule *energyStorageModule = getModuleFromPar<cModule>(par("energyStorageModule"), this);
+        energyStorage = check_and_cast<power::IEnergyStorage *>(energyStorageModule);
     } else if (stage == INITSTAGE_NETWORK_LAYER_3) {
         myNetwAddr = interfaceTable->getInterface(0)->getMacAddress();
+    } else if (INITSTAGE_LAST) {
+        maxEnergy = energyStorage->getNominalCapacity().get();
     }
 }
 
@@ -115,7 +120,11 @@ void SPIN::handleUpperPacket(cPacket *m)
     msg->setSeqNum(seqNum);
     seqNum++;
 
-    advertiseData(msg);
+    if (isNegotiationViable()) {
+        advertiseData(msg);
+    } else {
+        simpleSend(msg);
+    }
     nbDataPacketsSent++;
 }
 
@@ -129,7 +138,7 @@ void SPIN::handleLowerPacket(cPacket *m)
     switch (type) {
         case ADV:
             if (!knownMessages.count(metadata) && !queuedRequests.count(metadata)
-                    && !requestedMessages.count(metadata)) {
+                    && !requestedMessages.count(metadata) && isNegotiationViable()) {
                 scheduleReq(metadata, msg->getAdvertiser());
                 CheckMessage *checkTimer = new CheckMessage("Check Request");
                 checkTimer->setKind(REQ_CHECK);
@@ -171,10 +180,14 @@ void SPIN::handleLowerPacket(cPacket *m)
                     requestedMessages.erase(metadata);
                     sendUp(decapsMsg(msg->dup()), protocol);
                     nbDataPacketsReceived++;
-                    advertiseData(msg);
+                    if (isNegotiationViable()) {
+                        advertiseData(msg);
+                    }
                 } else {
                     knownMessages.insert(metadata);
-                    advertiseData(msg);
+                    if (isNegotiationViable()) {
+                        advertiseData(msg);
+                    }
                 }
             } else {
                 delete m;
@@ -199,7 +212,7 @@ void SPIN::handleSelfMessage(cMessage *m)
     } else if (kind == REQ_CHECK) {
         CheckMessage *msg = check_and_cast<CheckMessage *>(m);
         MsgMetadata metadata = createMsgMetadata(msg->getNodeAddress(), msg->getSeqNum());
-        if(!knownMessages.count(metadata) && msg->getRetryNum() < 5) {
+        if(!knownMessages.count(metadata) && msg->getRetryNum() < 3) {
             msg->setRetryNum(msg->getRetryNum() + 1);
             scheduleReq(metadata, msg->getAdvertiser());
             scheduleAt(simTime() + uniform(30, 40) / 1000, msg);
@@ -298,6 +311,23 @@ void SPIN::scheduleReq(MsgMetadata metadata, L3Address advertiser)
     req->setSeqNum(metadata.seqNum);
     queuedRequests.insert(std::make_pair(metadata, req));
     scheduleAt(simTime() + uniform(1, 15) / 1000, req);
+}
+
+void SPIN::simpleSend(SPINDatagram *msg)
+{
+    MsgMetadata metadata = createMsgMetadata(msg);
+    knownMessages.insert(metadata);
+    sendDown(msg);
+}
+
+bool SPIN::isNegotiationViable()
+{
+    double randomNumber = uniform(0, 1);
+    double currentEnergy = energyStorage->getResidualCapacity().get();
+    double k = -1.2;
+    double currentEnergyFrac = currentEnergy / maxEnergy;
+
+    return randomNumber < (k*currentEnergyFrac / (k - currentEnergyFrac + 1));
 }
 
 SPIN::MsgMetadata SPIN::createMsgMetadata(L3Address nodeAddress, unsigned long seqNum)

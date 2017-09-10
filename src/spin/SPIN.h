@@ -16,6 +16,7 @@
 #include "inet/networklayer/contract/INetworkProtocol.h"
 #include "inet/networklayer/base/NetworkProtocolBase.h"
 #include "inet/networklayer/common/L3Address.h"
+#include "inet/power/contract/IEnergyStorage.h"
 
 #include "SPINDatagram_m.h"
 #include "CheckMessage_m.h"
@@ -58,6 +59,7 @@ class SPIN : public NetworkProtocolBase, public INetworkProtocol
     /** @brief Default time-to-live (ttl) used for this module*/
     int defaultTtl = 0;
 
+    // TODO clear knownMessages and requestedMessages from time to time
     std::map<MsgMetadata, SPINDatagram*, MsgMetadataCompare> queuedMessages;
     std::map<MsgMetadata, SPINDatagram*, MsgMetadataCompare> queuedRequests;
     std::set<MsgMetadata, MsgMetadataCompare> knownMessages;
@@ -68,6 +70,9 @@ class SPIN : public NetworkProtocolBase, public INetworkProtocol
     long nbDataPacketsSent = 0;
     long nbDataPacketsForwarded = 0;
     long nbHops = 0;
+
+    power::IEnergyStorage *energyStorage;
+    double maxEnergy;
 
   public:
     SPIN() {}
@@ -123,6 +128,8 @@ class SPIN : public NetworkProtocolBase, public INetworkProtocol
 
     void advertiseData(SPINDatagram *msg);
     void scheduleReq(MsgMetadata metadata, L3Address advertiser);
+    void simpleSend(SPINDatagram *msg);
+    bool isNegotiationViable();
   private:
     MsgMetadata createMsgMetadata(L3Address nodeAddress, unsigned long seqNum);
     MsgMetadata createMsgMetadata(SPINDatagram *msg);
