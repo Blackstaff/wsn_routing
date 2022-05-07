@@ -22,4 +22,4 @@
 3. Run simulation
 
         cd wsn_routing/simulations
-        ../src/routing -m -u Qtenv -n "../src;.;../../inet/src" -l ../../inet/src/INET sim.ini
+        ../src/wsn_routing -m -u Qtenv -n "../src;.;../../inet/src" -l ../../inet/src/INET sim.ini
